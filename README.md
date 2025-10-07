@@ -4,9 +4,10 @@
 
 This project is the frontend for the Mission Capstone application, a web-based platform for visualizing and analyzing trade data. It provides a dashboard with various charts and data visualizations to help users understand trade trends and identify opportunities.
 
-## GitHub Repository
+## GitHub Repositories
 
 The source code for this project is hosted on GitHub: [https://github.com/ntwalii/mission-capstone-fe](https://github.com/ntwalii/mission-capstone-fe)
+The notebook related codes is in thie repo: [https://github.com/Ntwalii/mission-capstone-mode](https://github.com/Ntwalii/mission-capstone-model)
 
 ## Environment Setup
 
