@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Search, 
-  Building2, 
+import {
+  Search,
+  Building2,
   TrendingUp,
   Globe,
   Package,
@@ -14,7 +14,7 @@ import {
   Calendar,
   ArrowUpRight,
   Filter,
-  Star
+  Star,
 } from "lucide-react";
 
 const mockCompanies = [
@@ -29,7 +29,7 @@ const mockCompanies = [
     topMarkets: ["Germany", "USA", "Belgium"],
     riskScore: "Low",
     founded: "1998",
-    employees: "450+"
+    employees: "450+",
   },
   {
     name: "Kigali Industries Ltd.",
@@ -42,7 +42,7 @@ const mockCompanies = [
     topMarkets: ["Kenya", "Tanzania", "DRC"],
     riskScore: "Low",
     founded: "2003",
-    employees: "280+"
+    employees: "280+",
   },
   {
     name: "East African Tea Traders",
@@ -55,7 +55,7 @@ const mockCompanies = [
     topMarkets: ["UK", "USA", "Russia"],
     riskScore: "Medium",
     founded: "2001",
-    employees: "320+"
+    employees: "320+",
   },
   {
     name: "Central Imports Ltd.",
@@ -68,7 +68,7 @@ const mockCompanies = [
     topMarkets: ["China", "India", "Dubai"],
     riskScore: "Medium",
     founded: "2005",
-    employees: "150+"
+    employees: "150+",
   },
   {
     name: "Mountain View Minerals",
@@ -81,15 +81,15 @@ const mockCompanies = [
     topMarkets: ["China", "Malaysia", "India"],
     riskScore: "High",
     founded: "2010",
-    employees: "200+"
-  }
+    employees: "200+",
+  },
 ];
 
 const industryStats = [
   { industry: "Agriculture", companies: 45, value: "$234M", growth: "+18%" },
   { industry: "Manufacturing", companies: 32, value: "$156M", growth: "+12%" },
   { industry: "Mining", companies: 18, value: "$198M", growth: "+8%" },
-  { industry: "Services", companies: 28, value: "$89M", growth: "+15%" }
+  { industry: "Services", companies: 28, value: "$89M", growth: "+15%" },
 ];
 
 export default function Companies() {
@@ -97,20 +97,28 @@ export default function Companies() {
   const [selectedIndustry, setSelectedIndustry] = useState("");
 
   const getTypeColor = (type: string) => {
-    switch(type) {
-      case "Exporter": return "bg-success/10 text-success";
-      case "Importer": return "bg-primary/10 text-primary";
-      case "Mixed": return "bg-warning/10 text-warning";
-      default: return "bg-muted text-muted-foreground";
+    switch (type) {
+      case "Exporter":
+        return "bg-success/10 text-success";
+      case "Importer":
+        return "bg-primary/10 text-primary";
+      case "Mixed":
+        return "bg-warning/10 text-warning";
+      default:
+        return "bg-muted text-muted-foreground";
     }
   };
 
   const getRiskColor = (risk: string) => {
-    switch(risk) {
-      case "Low": return "default";
-      case "Medium": return "secondary";
-      case "High": return "destructive";
-      default: return "outline";
+    switch (risk) {
+      case "Low":
+        return "default";
+      case "Medium":
+        return "secondary";
+      case "High":
+        return "destructive";
+      default:
+        return "outline";
     }
   };
 
@@ -119,7 +127,7 @@ export default function Companies() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-hero bg-clip-text text-primary">
             Companies Database
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -131,7 +139,7 @@ export default function Companies() {
             <Filter className="h-4 w-4 mr-2" />
             Advanced Filters
           </Button>
-          <Button size="sm" className="bg-gradient-primary">
+          <Button size="sm" className="bg-primary">
             Add Company
           </Button>
         </div>
@@ -151,9 +159,7 @@ export default function Companies() {
                   className="pl-10"
                 />
               </div>
-              <Button className="bg-gradient-primary">
-                Search
-              </Button>
+              <Button className="bg-primary">Search</Button>
             </div>
           </CardContent>
         </Card>
@@ -170,12 +176,20 @@ export default function Companies() {
 
       {/* Industry Quick Filters */}
       <div className="flex flex-wrap gap-2">
-        {["Agriculture", "Manufacturing", "Mining", "Services", "Technology"].map((industry) => (
-          <Badge 
+        {[
+          "Agriculture",
+          "Manufacturing",
+          "Mining",
+          "Services",
+          "Technology",
+        ].map((industry) => (
+          <Badge
             key={industry}
             variant={selectedIndustry === industry ? "default" : "secondary"}
             className="cursor-pointer hover:bg-primary/10"
-            onClick={() => setSelectedIndustry(industry === selectedIndustry ? "" : industry)}
+            onClick={() =>
+              setSelectedIndustry(industry === selectedIndustry ? "" : industry)
+            }
           >
             {industry}
           </Badge>
@@ -191,7 +205,10 @@ export default function Companies() {
 
         <TabsContent value="directory" className="space-y-4">
           {mockCompanies.map((company) => (
-            <Card key={company.name} className="hover:shadow-medium transition-all duration-200">
+            <Card
+              key={company.name}
+              className="hover:shadow-medium transition-all duration-200"
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -214,7 +231,7 @@ export default function Companies() {
                     <Button variant="outline" size="sm">
                       <Star className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" className="bg-gradient-primary">
+                    <Button size="sm" className="bg-primary">
                       View Profile
                     </Button>
                   </div>
@@ -224,10 +241,14 @@ export default function Companies() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Trade Value</p>
-                    <p className="font-semibold text-lg">{company.tradeValue}</p>
+                    <p className="font-semibold text-lg">
+                      {company.tradeValue}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Transactions</p>
+                    <p className="text-sm text-muted-foreground">
+                      Transactions
+                    </p>
                     <p className="font-semibold">{company.transactions}</p>
                   </div>
                   <div>
@@ -253,7 +274,11 @@ export default function Companies() {
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {company.mainProducts.map((product) => (
-                        <Badge key={product} variant="outline" className="text-xs">
+                        <Badge
+                          key={product}
+                          variant="outline"
+                          className="text-xs"
+                        >
                           {product}
                         </Badge>
                       ))}
@@ -267,7 +292,11 @@ export default function Companies() {
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {company.topMarkets.map((market) => (
-                        <Badge key={market} variant="outline" className="text-xs">
+                        <Badge
+                          key={market}
+                          variant="outline"
+                          className="text-xs"
+                        >
                           {market}
                         </Badge>
                       ))}
@@ -306,7 +335,10 @@ export default function Companies() {
               <CardContent>
                 <div className="space-y-4">
                   {industryStats.map((stat) => (
-                    <div key={stat.industry} className="flex items-center justify-between">
+                    <div
+                      key={stat.industry}
+                      className="flex items-center justify-between"
+                    >
                       <div>
                         <p className="font-medium">{stat.industry}</p>
                         <p className="text-sm text-muted-foreground">
@@ -334,19 +366,24 @@ export default function Companies() {
                     .sort((a, b) => parseFloat(b.growth) - parseFloat(a.growth))
                     .slice(0, 5)
                     .map((company, index) => (
-                    <div key={company.name} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                        {index + 1}
+                      <div
+                        key={company.name}
+                        className="flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{company.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {company.industry}
+                          </p>
+                        </div>
+                        <Badge className="bg-success/10 text-success">
+                          {company.growth}
+                        </Badge>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{company.name}</p>
-                        <p className="text-sm text-muted-foreground">{company.industry}</p>
-                      </div>
-                      <Badge className="bg-success/10 text-success">
-                        {company.growth}
-                      </Badge>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -363,7 +400,8 @@ export default function Companies() {
                 <div className="text-center">
                   <Building2 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">
-                    Interactive company network visualization would be rendered here
+                    Interactive company network visualization would be rendered
+                    here
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
                     Showing trade relationships between companies and partners

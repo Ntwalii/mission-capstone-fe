@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import useUserDetails from "../hooks/useUserDetails";
+import { getAuthToken } from "@/utils/auth";
 
 export type ItemsStats = {
   tradeValue: number;
@@ -33,24 +41,34 @@ export type TradeApiParams = {
   year: number;
 };
 
+export type UserDetails = {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  full_name: string;
+};
+
+export type TopCommodities = {
+  rank: number;
+  commodityId: string;
+  productName: string;
+  category: string;
+  value: number;
+  valueFormatted: string;
+  growthPct: number;
+};
+
 type TradeApiState = {
-  // global params (just year now)
   params: TradeApiParams;
   setParams: (p: Partial<TradeApiParams>) => void;
-
-  // /items/stats
   stats: ItemsStats;
   setStats: React.Dispatch<React.SetStateAction<ItemsStats>>;
-
-  // /items/partners
   partners: Partner[];
   setPartners: React.Dispatch<React.SetStateAction<Partner[]>>;
-
-  // /items/stats/continents
   continents: ContinentSum[];
   setContinents: React.Dispatch<React.SetStateAction<ContinentSum[]>>;
-
-  // helper to clear all
+  userDetails: UserDetails | null;
   resetAll: () => void;
 };
 
@@ -63,6 +81,8 @@ export function TradeApiProvider({
   children: React.ReactNode;
   initialYear?: number;
 }) {
+  const [{ loading, error }, executeValidate] = useUserDetails();
+
   // Global parameter
   const [params, setParamsState] = useState<TradeApiParams>({
     year: initialYear ?? new Date().getFullYear(),
@@ -74,6 +94,30 @@ export function TradeApiProvider({
   const [stats, setStats] = useState<ItemsStats>(null);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [continents, setContinents] = useState<ContinentSum[]>([]);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [topCommodities, setTopCommodities] = useState<TopCommodities[]>([]);
+
+  // Fetch user details on mount
+  useEffect(() => {
+    const getUserDetails = async () => {
+      try {
+        const { data } = await executeValidate({
+          params: {
+            token: getAuthToken(),
+          },
+        });
+
+        if (data) {
+          setUserDetails(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user details:", error);
+      }
+    };
+
+    getUserDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const resetAll = () => {
     setStats(null);
@@ -91,9 +135,10 @@ export function TradeApiProvider({
       setPartners,
       continents,
       setContinents,
+      userDetails, // Add this to your context type if you want to access it
       resetAll,
     }),
-    [params, stats, partners, continents]
+    [params, stats, partners, continents, userDetails]
   );
 
   return <TradeApiCtx.Provider value={value}>{children}</TradeApiCtx.Provider>;

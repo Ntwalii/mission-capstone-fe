@@ -93,7 +93,7 @@ const Landing = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Globe className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Rwanda Trade Intel</span>
+            <span className="text-xl font-bold">Rwanda Trade Pulse</span>
           </div>
           <Link to="/dashboard">
             <Button>
@@ -254,13 +254,9 @@ const Landing = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <Globe className="h-5 w-5 text-primary" />
-              <span className="font-semibold">
-                Rwanda Trade Intelligence Platform
-              </span>
+              <span className="font-semibold">Rwanda Trade Pulse</span>
             </div>
-            <p className="text-sm text-muted-foreground">
-               ©2025 Rwanda
-            </p>
+            <p className="text-sm text-muted-foreground">©2025 Rwanda</p>
           </div>
         </div>
       </footer>

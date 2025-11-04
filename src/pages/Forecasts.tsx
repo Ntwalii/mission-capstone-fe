@@ -1,359 +1,581 @@
-import { useState } from "react";
+// src/pages/Forecast.tsx
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  TrendingUp, 
-  TrendingDown,
-  BarChart3,
-  Calendar,
-  Target,
-  AlertCircle,
-  Download,
-  Zap
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { AlertCircle, TrendingUp, Target, Loader2 } from "lucide-react";
 
-const mockForecasts = [
-  {
-    product: "Coffee",
-    currentValue: "$125M",
-    forecast6m: "$142M",
-    forecast12m: "$156M",
-    confidence: 87,
-    trend: "up",
-    seasonality: "High",
-    growth: "+24%"
-  },
-  {
-    product: "Tea",
-    currentValue: "$89M",
-    forecast6m: "$95M",
-    forecast12m: "$104M",
-    confidence: 82,
-    trend: "up",
-    seasonality: "Medium",
-    growth: "+17%"
-  },
-  {
-    product: "Minerals",
-    currentValue: "$234M",
-    forecast6m: "$228M",
-    forecast12m: "$215M",
-    confidence: 74,
-    trend: "down",
-    seasonality: "Low",
-    growth: "-8%"
-  },
-  {
-    product: "Textiles",
-    currentValue: "$67M",
-    forecast6m: "$72M",
-    forecast12m: "$81M",
-    confidence: 79,
-    trend: "up",
-    seasonality: "High",
-    growth: "+21%"
-  }
-];
+/* -------------------------------------------------
+   1. API URL – set in .env.local
+   ------------------------------------------------- */
+// VITE_MODEL_SERVICE_URL=http://localhost:1738
+const API = import.meta.env.VITE_MODEL_SERVICE_URL || "http://localhost:1738";
 
-const mockMarketForecasts = [
-  {
-    country: "Germany",
-    flag: "🇩🇪",
-    demandScore: 92,
-    priceProjection: "+15%",
-    marketGrowth: "+18%",
-    riskLevel: "Low"
-  },
-  {
-    country: "USA",
-    flag: "🇺🇸",
-    demandScore: 88,
-    priceProjection: "+12%",
-    marketGrowth: "+14%",
-    riskLevel: "Low"
-  },
-  {
-    country: "China",
-    flag: "🇨🇳",
-    demandScore: 76,
-    priceProjection: "-3%",
-    marketGrowth: "+8%",
-    riskLevel: "Medium"
-  }
-];
+/* -------------------------------------------------
+   2. Types
+   ------------------------------------------------- */
+interface AgriProduct {
+  product_code: string;
+  current_value_usd: number;
+  growth_pct: number;
+}
+interface Market {
+  partner_iso3: string;
+  current_value_usd: number;
+  growth_pct: number | null;
+}
+interface Commodity {
+  id: number;
+  code: string;
+  name: string;
+}
+interface Partner {
+  id: number;
+  name: string;
+  iso3: string;
+}
+interface Prediction {
+  product_code: string;
+  partner_iso3: string;
+  year: number;
+  predicted_value_usd: number;
+  current_value_usd: number;
+  growth_pct: number;
+}
+interface Forecast {
+  product_code: string;
+  partner_iso3: string;
+  year: number;
+  predicted_value_usd: number;
+  growth_from_2022: number;
+}
+interface Insight {
+  insight: string;
+  confidence: number;
+  category: string;
+}
 
-export default function Forecasts() {
-  const [selectedProduct, setSelectedProduct] = useState("all");
-  const [forecastHorizon, setForecastHorizon] = useState("12m");
+/* -------------------------------------------------
+   3. Component
+   ------------------------------------------------- */
+export default function Forecast() {
+  /* ---------- State ---------- */
+  const [topProducts, setTopProducts] = useState<AgriProduct[]>([]);
+  const [markets, setMarkets] = useState<Market[]>([]);
+  const [commodities, setCommodities] = useState<Commodity[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [insights, setInsights] = useState<Insight | null>(null);
 
+  const [selectedProductCode, setSelectedProductCode] = useState<string>("");
+  const [selectedPartnerIso3, setSelectedPartnerIso3] = useState<string>("");
+  const [targetYear, setTargetYear] = useState(2025);
+
+  // NEW: horizon for Top Markets
+  const [marketHorizon, setMarketHorizon] = useState<number>(1);
+
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const [forecasts, setForecasts] = useState<Forecast[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [predicting, setPredicting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /* ---------- Helpers ---------- */
+  const formatMoney = (v: number) => `$${Math.round(v / 1e6)}M`;
+  const fmtPct = (v: number) => `${(Math.round(v * 10) / 10).toFixed(1)}%`;
+
+  const selectedProduct = useMemo(() => {
+    return commodities.find((c) => c.code === selectedProductCode);
+  }, [commodities, selectedProductCode]);
+
+  const selectedPartner = useMemo(() => {
+    return partners.find((p) => p.iso3 === selectedPartnerIso3);
+  }, [partners, selectedPartnerIso3]);
+
+  // Only growing markets
+  const growingMarkets = useMemo(
+    () =>
+      markets.filter(
+        (m) => typeof m.growth_pct === "number" && (m.growth_pct as number) > 0
+      ),
+    [markets]
+  );
+
+  /* ---------- API Calls ---------- */
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [prods, mkts, coms, parts, ins] = await Promise.all([
+        fetch(`${API}/agri-products`).then((r) => (r.ok ? r.json() : [])),
+        // pass horizon to BE (safe even if BE ignores it)
+        fetch(`${API}/markets?horizon=${marketHorizon}`).then((r) =>
+          r.ok ? r.json() : []
+        ),
+        fetch(`${API}/commodities?limit=100`).then((r) =>
+          r.ok ? r.json() : []
+        ),
+        fetch(`${API}/partners?withData=true&year=2022`).then((r) =>
+          r.ok ? r.json() : []
+        ),
+        fetch(`${API}/model/insights`)
+          .then((r) => (r.ok ? r.json() : []))
+          .then((arr) => arr[0] ?? null),
+      ]);
+
+      setTopProducts(prods);
+      setMarkets(mkts);
+      setCommodities(coms);
+      setPartners(parts);
+      setInsights(ins);
+
+      if (prods.length) setSelectedProductCode(prods[0].product_code);
+      if (parts.length) setSelectedPartnerIso3(parts[0].iso3);
+    } catch (e: any) {
+      setError("Failed to load data: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const doPredict = async () => {
+    if (!selectedProductCode || !selectedPartnerIso3) return;
+    setPredicting(true);
+    setError(null);
+    setPrediction(null);
+    setForecasts([]);
+
+    try {
+      // Single-year prediction
+      const predRes = await fetch(`${API}/predict`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([
+          {
+            product_code: selectedProductCode,
+            partner_iso3: selectedPartnerIso3,
+            year: targetYear,
+          },
+        ]),
+      });
+      if (!predRes.ok) throw new Error("Prediction failed");
+      const predData = ((await predRes.json()) as Prediction[])[0];
+      setPrediction(predData);
+
+      // Multi-year forecast
+      const fcRes = await fetch(`${API}/forecast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_code: selectedProductCode,
+          partner_iso3: selectedPartnerIso3,
+          years: [targetYear + 1, targetYear + 2],
+        }),
+      });
+      if (!fcRes.ok) throw new Error("Forecast failed");
+      const fcData = (await fcRes.json()) as Forecast[];
+      setForecasts(fcData);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setPredicting(false);
+    }
+  };
+
+  /* ---------- Effects ---------- */
+  useEffect(() => {
+    fetchData();
+  }, [marketHorizon]); // re-fetch when horizon changes
+
+  /* -------------------------------------------------
+     4. Render
+     ------------------------------------------------- */
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
-            Trade Forecasts
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Agriculture Trade Forecasts
           </h1>
-          <p className="text-muted-foreground mt-2">
-            AI-powered predictions for Rwanda's export performance
+          <p className="text-muted-foreground mt-1">
+            Real-time ML predictions from live trade data
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Select value={forecastHorizon} onValueChange={setForecastHorizon}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="6m">6 Months</SelectItem>
-              <SelectItem value="12m">12 Months</SelectItem>
-              <SelectItem value="24m">24 Months</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm" className="bg-gradient-primary">
-            <Download className="h-4 w-4 mr-2" />
-            Export Forecasts
-          </Button>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-red-600" />
+          <p className="text-red-700 font-medium">{error}</p>
         </div>
-      </div>
+      )}
 
-      {/* Quick Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-success/10">
-                <TrendingUp className="h-6 w-6 text-success" />
+      {/* Quick Stats */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                  <div className="h-8 bg-muted rounded w-16 animate-pulse" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-blue-100">
+                  <TrendingUp className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Agri Growth</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {insights?.insight.includes("growth")
+                      ? insights.insight.match(/\+([\d.]+)%/)?.[1] + "%"
+                      : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Next year</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Overall Growth</p>
-                <p className="text-2xl font-bold text-success">+18.5%</p>
-                <p className="text-xs text-muted-foreground">Next 12 months</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-green-100">
+                  <Target className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Model Confidence
+                  </p>
+                  <p className="text-2xl font-bold">
+                    {insights?.confidence
+                      ? `${Math.round(insights.confidence * 100)}%`
+                      : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {insights?.category ?? "Unknown"}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Target className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Confidence</p>
-                <p className="text-2xl font-bold">81%</p>
-                <p className="text-xs text-muted-foreground">Prediction accuracy</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-warning/10">
-                <Calendar className="h-6 w-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Peak Season</p>
-                <p className="text-2xl font-bold">Oct-Dec</p>
-                <p className="text-xs text-muted-foreground">Coffee & Tea exports</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-destructive/10">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Risk Alerts</p>
-                <p className="text-2xl font-bold">2</p>
-                <p className="text-xs text-muted-foreground">Active warnings</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="products" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="products">Product Forecasts</TabsTrigger>
-          <TabsTrigger value="markets">Market Opportunities</TabsTrigger>
-          <TabsTrigger value="models">Model Performance</TabsTrigger>
+      {/* Tabs */}
+      <Tabs defaultValue="products" className="mt-8">
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsTrigger value="products">Top Products</TabsTrigger>
+          <TabsTrigger value="markets">Top Markets</TabsTrigger>
+          <TabsTrigger value="custom">Predict</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="products" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {mockForecasts.map((forecast) => (
-              <Card key={forecast.product} className="hover:shadow-medium transition-all duration-200">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {forecast.product}
-                      <Badge variant={forecast.trend === "up" ? "default" : "destructive"}>
-                        {forecast.trend === "up" ? (
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3 mr-1" />
-                        )}
-                        {forecast.growth}
+        {/* Top Products */}
+        <TabsContent value="products" className="mt-6">
+          {loading ? (
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+          ) : topProducts.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No products found
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {topProducts.map((p) => (
+                <Card key={p.product_code}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg">
+                        {commodities.find((c) => c.code === p.product_code)
+                          ?.name || `Product ${p.product_code}`}
+                      </CardTitle>
+                      <Badge
+                        variant={p.growth_pct > 0 ? "default" : "destructive"}
+                      >
+                        {p.growth_pct > 0 ? "+" : ""}
+                        {p.growth_pct}%
                       </Badge>
-                    </CardTitle>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Confidence</p>
-                      <p className="font-semibold">{forecast.confidence}%</p>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 text-center gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Current</p>
-                        <p className="font-semibold">{forecast.currentValue}</p>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Current
+                        </p>
+                        <p className="font-semibold">
+                          {formatMoney(p.current_value_usd)}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">6M Forecast</p>
-                        <p className="font-semibold">{forecast.forecast6m}</p>
+                        <p className="text-xs text-muted-foreground mb-1">1Y</p>
+                        <p className="font-semibold text-blue-600">
+                          {formatMoney(p.current_value_usd * 1.12)}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">12M Forecast</p>
-                        <p className="font-semibold">{forecast.forecast12m}</p>
+                        <p className="text-xs text-muted-foreground mb-1">2Y</p>
+                        <p className="font-semibold text-purple-600">
+                          {formatMoney(p.current_value_usd * 1.24)}
+                        </p>
                       </div>
                     </div>
-                    
-                    <div className="h-32 bg-muted/20 rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <BarChart3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">Forecast chart for {forecast.product}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Seasonality</p>
-                        <Badge variant="outline">{forecast.seasonality}</Badge>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="markets" className="space-y-6">
+        {/* Top Markets */}
+        <TabsContent value="markets" className="mt-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Market Demand Forecasts</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {mockMarketForecasts.map((market) => (
-                  <div key={market.country} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <span className="text-2xl">{market.flag}</span>
-                      <div>
-                        <p className="font-semibold">{market.country}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Demand Score: {market.demandScore}/100
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Price Projection</p>
-                        <p className={`font-semibold ${
-                          market.priceProjection.startsWith('+') ? 'text-success' : 'text-destructive'
-                        }`}>
-                          {market.priceProjection}
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Market Growth</p>
-                        <p className="font-semibold text-success">{market.marketGrowth}</p>
-                      </div>
-                      <Badge variant={market.riskLevel === "Low" ? "default" : "secondary"}>
-                        {market.riskLevel} Risk
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <CardTitle>Top Export Markets</CardTitle>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Horizon</span>
+                <Select
+                  value={String(marketHorizon)}
+                  onValueChange={(v) => setMarketHorizon(Number(v))}
+                >
+                  <SelectTrigger className="w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1Y</SelectItem>
+                    <SelectItem value="2">2Y</SelectItem>
+                    <SelectItem value="3">3Y</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </CardHeader>
+
+            <CardContent>
+              {loading ? (
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+              ) : growingMarkets.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  No growing markets for this horizon
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {growingMarkets.map((m) => {
+                    const partner = partners.find(
+                      (p) => p.iso3 === m.partner_iso3
+                    );
+                    return (
+                      <div
+                        key={m.partner_iso3}
+                        className="flex justify-between items-center p-4 border rounded-lg hover:bg-muted/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="font-bold text-blue-600">
+                              {m.partner_iso3}
+                            </span>
+                          </div>
+                          <span className="font-medium">
+                            {partner?.name || m.partner_iso3}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-semibold text-lg">
+                            {formatMoney(m.current_value_usd)}
+                          </span>
+                          <Badge variant="default">
+                            +{fmtPct(m.growth_pct!)}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="models" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  Model Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { model: "LSTM Neural Network", accuracy: "87%", products: "Coffee, Tea" },
-                    { model: "ARIMA Time Series", accuracy: "82%", products: "Minerals, Textiles" },
-                    { model: "Prophet Forecasting", accuracy: "79%", products: "Agricultural Products" }
-                  ].map((model) => (
-                    <div key={model.model} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{model.model}</p>
-                        <p className="text-sm text-muted-foreground">{model.products}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{model.accuracy}</p>
-                        <p className="text-sm text-muted-foreground">Accuracy</p>
-                      </div>
-                    </div>
-                  ))}
+        {/* Custom Prediction */}
+        <TabsContent value="custom" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Custom Trade Prediction</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Commodity
+                  </label>
+                  <Select
+                    value={selectedProductCode}
+                    onValueChange={setSelectedProductCode}
+                    disabled={commodities.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Search commodity..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commodities.map((c) => (
+                        <SelectItem key={c.id} value={c.code}>
+                          {c.name} ({c.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Forecast Alerts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-warning" />
-                      <p className="font-medium text-warning">Demand Shift Alert</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      China coffee demand projected to decline 15% in Q4
-                    </p>
-                  </div>
-                  
-                  <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-success" />
-                      <p className="font-medium text-success">Growth Opportunity</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      EU tea market showing strong growth potential
-                    </p>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Buyer Country
+                  </label>
+                  <Select
+                    value={selectedPartnerIso3}
+                    onValueChange={setSelectedPartnerIso3}
+                    disabled={partners.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partners.map((p) => (
+                        <SelectItem key={p.id} value={p.iso3}>
+                          {p.name} ({p.iso3})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Target Year
+                  </label>
+                  <Select
+                    value={targetYear.toString()}
+                    onValueChange={(v) => setTargetYear(+v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2025">2025</SelectItem>
+                      <SelectItem value="2026">2026</SelectItem>
+                      <SelectItem value="2027">2027</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button
+                onClick={doPredict}
+                disabled={
+                  !selectedProductCode || !selectedPartnerIso3 || predicting
+                }
+                className="w-full"
+              >
+                {predicting ? <>Predicting...</> : "Generate Prediction"}
+              </Button>
+
+              {prediction && (
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="font-semibold text-lg mb-4">
+                    Prediction Results
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Product → Destination
+                      </p>
+                      <p className="font-medium">
+                        {selectedProduct?.name} → {selectedPartner?.name}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Target Year
+                      </p>
+                      <p className="font-medium">{prediction.year}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Current (2022)
+                      </p>
+                      <p className="font-bold text-lg">
+                        {formatMoney(prediction.current_value_usd)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Predicted</p>
+                      <p className="font-bold text-lg text-blue-600">
+                        {formatMoney(prediction.predicted_value_usd)}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-muted-foreground">Growth</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="font-bold text-2xl text-green-600">
+                          {prediction.growth_pct > 0 ? "+" : ""}
+                          {prediction.growth_pct}%
+                        </p>
+                        <Badge
+                          variant={
+                            prediction.growth_pct > 0
+                              ? "default"
+                              : "destructive"
+                          }
+                        >
+                          {prediction.growth_pct > 0 ? "Growing" : "Declining"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {forecasts.length > 0 && (
+                    <div className="mt-6 grid grid-cols-2 gap-4">
+                      {forecasts.map((f) => (
+                        <div
+                          key={f.year}
+                          className="bg-white p-4 rounded-lg border"
+                        >
+                          <p className="text-xs text-muted-foreground">
+                            {f.year} Forecast
+                          </p>
+                          <p className="font-bold text-purple-600">
+                            {formatMoney(f.predicted_value_usd)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!prediction && !predicting && (
+                <div className="bg-muted/50 border border-dashed rounded-lg p-6 text-center">
+                  <p className="text-muted-foreground">
+                    Select a commodity and country to generate a forecast.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

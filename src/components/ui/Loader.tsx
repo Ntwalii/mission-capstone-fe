@@ -1,8 +1,8 @@
 export default function Loader({ message = "Loading..." }) {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screenflex items-center justify-center">
       <div className="text-center space-y-4">
-        <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+        <div className="w-16 h-16 border-4rounded-full animate-spin mx-auto"></div>
         <p className="text-slate-300 text-lg">{message}</p>
       </div>
     </div>

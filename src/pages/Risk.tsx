@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { 
-  AlertTriangle, 
+import {
+  AlertTriangle,
   Shield,
   TrendingDown,
   Globe,
@@ -13,7 +13,7 @@ import {
   Building2,
   Zap,
   Download,
-  Eye
+  Eye,
 } from "lucide-react";
 
 const riskMetrics = [
@@ -22,29 +22,29 @@ const riskMetrics = [
     score: 68,
     level: "Medium",
     description: "Trade concentrated in 3 key regions",
-    trend: "stable"
+    trend: "stable",
   },
   {
     category: "Product Dependency",
     score: 45,
     level: "Low",
     description: "Well diversified product portfolio",
-    trend: "improving"
+    trend: "improving",
   },
   {
-    category: "Partner Concentration", 
+    category: "Partner Concentration",
     score: 72,
     level: "High",
     description: "Heavy reliance on top 5 partners",
-    trend: "worsening"
+    trend: "worsening",
   },
   {
     category: "Currency Exposure",
     score: 55,
     level: "Medium",
     description: "USD dominance creates volatility",
-    trend: "stable"
-  }
+    trend: "stable",
+  },
 ];
 
 const topRisks = [
@@ -53,49 +53,57 @@ const topRisks = [
     impact: "High",
     probability: "Medium",
     description: "28% of imports from single source",
-    mitigation: "Diversify supplier base to India, Vietnam"
+    mitigation: "Diversify supplier base to India, Vietnam",
   },
   {
     risk: "Coffee Price Volatility",
-    impact: "High", 
+    impact: "High",
     probability: "High",
     description: "Weather and global demand fluctuations",
-    mitigation: "Futures contracts and premium positioning"
+    mitigation: "Futures contracts and premium positioning",
   },
   {
     risk: "Transport Route Disruption",
     impact: "Medium",
     probability: "Low",
     description: "Single port dependency in Mombasa",
-    mitigation: "Develop alternative logistics routes"
+    mitigation: "Develop alternative logistics routes",
   },
   {
     risk: "EU Regulatory Changes",
     impact: "Medium",
-    probability: "Medium", 
+    probability: "Medium",
     description: "New sustainability requirements",
-    mitigation: "Compliance preparation and certification"
-  }
+    mitigation: "Compliance preparation and certification",
+  },
 ];
 
 export default function Risk() {
   const [selectedTimeframe, setSelectedTimeframe] = useState("6m");
 
   const getRiskColor = (level: string) => {
-    switch(level.toLowerCase()) {
-      case "low": return "text-success";
-      case "medium": return "text-warning";
-      case "high": return "text-destructive";
-      default: return "text-muted-foreground";
+    switch (level.toLowerCase()) {
+      case "low":
+        return "text-success";
+      case "medium":
+        return "text-warning";
+      case "high":
+        return "text-destructive";
+      default:
+        return "text-muted-foreground";
     }
   };
 
   const getRiskBadgeVariant = (level: string) => {
-    switch(level.toLowerCase()) {
-      case "low": return "default";
-      case "medium": return "secondary";
-      case "high": return "destructive";
-      default: return "outline";
+    switch (level.toLowerCase()) {
+      case "low":
+        return "default";
+      case "medium":
+        return "secondary";
+      case "high":
+        return "destructive";
+      default:
+        return "outline";
     }
   };
 
@@ -104,7 +112,7 @@ export default function Risk() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-hero bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-hero bg-clip-text text-primary">
             Risk Analysis
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -116,7 +124,7 @@ export default function Risk() {
             <Eye className="h-4 w-4 mr-2" />
             Risk Monitor
           </Button>
-          <Button size="sm" className="bg-gradient-primary">
+          <Button size="sm" className="bg-primary">
             <Download className="h-4 w-4 mr-2" />
             Risk Report
           </Button>
@@ -189,7 +197,9 @@ export default function Risk() {
       <Tabs defaultValue="dashboard" className="space-y-6">
         <TabsList>
           <TabsTrigger value="dashboard">Risk Dashboard</TabsTrigger>
-          <TabsTrigger value="concentration">Concentration Analysis</TabsTrigger>
+          <TabsTrigger value="concentration">
+            Concentration Analysis
+          </TabsTrigger>
           <TabsTrigger value="scenarios">Stress Testing</TabsTrigger>
         </TabsList>
 
@@ -210,7 +220,9 @@ export default function Risk() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">{metric.category}</p>
-                          <p className="text-sm text-muted-foreground">{metric.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {metric.description}
+                          </p>
                         </div>
                         <Badge variant={getRiskBadgeVariant(metric.level)}>
                           {metric.level}
@@ -218,7 +230,9 @@ export default function Risk() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Progress value={metric.score} className="flex-1" />
-                        <span className="text-sm font-medium w-12">{metric.score}%</span>
+                        <span className="text-sm font-medium w-12">
+                          {metric.score}%
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -241,7 +255,10 @@ export default function Risk() {
                       <div className="flex items-center justify-between mb-2">
                         <p className="font-medium">{risk.risk}</p>
                         <div className="flex gap-2">
-                          <Badge variant={getRiskBadgeVariant(risk.impact)} className="text-xs">
+                          <Badge
+                            variant={getRiskBadgeVariant(risk.impact)}
+                            className="text-xs"
+                          >
                             {risk.impact}
                           </Badge>
                           <Badge variant="outline" className="text-xs">
@@ -249,8 +266,12 @@ export default function Risk() {
                           </Badge>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">{risk.description}</p>
-                      <p className="text-sm font-medium">Mitigation: {risk.mitigation}</p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {risk.description}
+                      </p>
+                      <p className="text-sm font-medium">
+                        Mitigation: {risk.mitigation}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -266,22 +287,40 @@ export default function Risk() {
             <CardContent>
               <div className="space-y-4">
                 {[
-                  { date: "2024-02-15", event: "China supplier capacity reduced", impact: "Medium", status: "Ongoing" },
-                  { date: "2024-01-28", event: "New EU sustainability regulations", impact: "Low", status: "Monitored" },
-                  { date: "2024-01-10", event: "Coffee futures price volatility", impact: "High", status: "Mitigated" }
+                  {
+                    date: "2024-02-15",
+                    event: "China supplier capacity reduced",
+                    impact: "Medium",
+                    status: "Ongoing",
+                  },
+                  {
+                    date: "2024-01-28",
+                    event: "New EU sustainability regulations",
+                    impact: "Low",
+                    status: "Monitored",
+                  },
+                  {
+                    date: "2024-01-10",
+                    event: "Coffee futures price volatility",
+                    impact: "High",
+                    status: "Mitigated",
+                  },
                 ].map((event, index) => (
-                  <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center gap-4 p-3 border rounded-lg"
+                  >
                     <div className="w-2 h-2 rounded-full bg-primary"></div>
                     <div className="flex-1">
                       <p className="font-medium">{event.event}</p>
-                      <p className="text-sm text-muted-foreground">{event.date}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {event.date}
+                      </p>
                     </div>
                     <Badge variant={getRiskBadgeVariant(event.impact)}>
                       {event.impact}
                     </Badge>
-                    <Badge variant="outline">
-                      {event.status}
-                    </Badge>
+                    <Badge variant="outline">{event.status}</Badge>
                   </div>
                 ))}
               </div>
@@ -305,12 +344,17 @@ export default function Risk() {
                     { region: "East Africa", share: 42, risk: "Low" },
                     { region: "Asia", share: 35, risk: "Medium" },
                     { region: "Europe", share: 18, risk: "Low" },
-                    { region: "Others", share: 5, risk: "Low" }
+                    { region: "Others", share: 5, risk: "Low" },
                   ].map((region) => (
-                    <div key={region.region} className="flex items-center justify-between">
+                    <div
+                      key={region.region}
+                      className="flex items-center justify-between"
+                    >
                       <div>
                         <p className="font-medium">{region.region}</p>
-                        <p className="text-sm text-muted-foreground">{region.share}% of trade</p>
+                        <p className="text-sm text-muted-foreground">
+                          {region.share}% of trade
+                        </p>
                       </div>
                       <Badge variant={getRiskBadgeVariant(region.risk)}>
                         {region.risk}
@@ -335,12 +379,17 @@ export default function Risk() {
                     { product: "Coffee", share: 32, risk: "Medium" },
                     { product: "Tea", share: 28, risk: "Medium" },
                     { product: "Minerals", share: 25, risk: "Low" },
-                    { product: "Others", share: 15, risk: "Low" }
+                    { product: "Others", share: 15, risk: "Low" },
                   ].map((product) => (
-                    <div key={product.product} className="flex items-center justify-between">
+                    <div
+                      key={product.product}
+                      className="flex items-center justify-between"
+                    >
                       <div>
                         <p className="font-medium">{product.product}</p>
-                        <p className="text-sm text-muted-foreground">{product.share}% of exports</p>
+                        <p className="text-sm text-muted-foreground">
+                          {product.share}% of exports
+                        </p>
                       </div>
                       <Badge variant={getRiskBadgeVariant(product.risk)}>
                         {product.risk}
@@ -365,12 +414,17 @@ export default function Risk() {
                     { partner: "Kenya", share: 28, risk: "Low" },
                     { partner: "China", share: 24, risk: "High" },
                     { partner: "Germany", share: 18, risk: "Low" },
-                    { partner: "Others", share: 30, risk: "Medium" }
+                    { partner: "Others", share: 30, risk: "Medium" },
                   ].map((partner) => (
-                    <div key={partner.partner} className="flex items-center justify-between">
+                    <div
+                      key={partner.partner}
+                      className="flex items-center justify-between"
+                    >
                       <div>
                         <p className="font-medium">{partner.partner}</p>
-                        <p className="text-sm text-muted-foreground">{partner.share}% of trade</p>
+                        <p className="text-sm text-muted-foreground">
+                          {partner.share}% of trade
+                        </p>
                       </div>
                       <Badge variant={getRiskBadgeVariant(partner.risk)}>
                         {partner.risk}
@@ -395,26 +449,26 @@ export default function Risk() {
                     title: "Major Partner Disruption",
                     description: "China reduces imports by 50%",
                     impact: "High",
-                    timeline: "Immediate"
+                    timeline: "Immediate",
                   },
                   {
                     title: "Global Coffee Crisis",
                     description: "Climate change affects 30% of production",
                     impact: "High",
-                    timeline: "2-5 years"
+                    timeline: "2-5 years",
                   },
                   {
                     title: "Transport Route Closure",
                     description: "Mombasa port disruption for 3 months",
                     impact: "Medium",
-                    timeline: "Short-term"
+                    timeline: "Short-term",
                   },
                   {
                     title: "Currency Devaluation",
                     description: "RWF weakens 20% against USD",
                     impact: "Medium",
-                    timeline: "6-12 months"
-                  }
+                    timeline: "6-12 months",
+                  },
                 ].map((scenario, index) => (
                   <Card key={index} className="p-4">
                     <div className="space-y-3">
@@ -424,9 +478,13 @@ export default function Risk() {
                           {scenario.impact}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">{scenario.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {scenario.description}
+                      </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Timeline: {scenario.timeline}</span>
+                        <span className="text-sm">
+                          Timeline: {scenario.timeline}
+                        </span>
                         <Button variant="outline" size="sm">
                           Run Test
                         </Button>

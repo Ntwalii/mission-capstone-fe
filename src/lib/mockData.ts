@@ -10,18 +10,18 @@ export const mockKpiData = {
 };
 
 export const mockTradeData = [
-  { period: "Jan 2024", imports: 125000000, exports: 95000000 },
-  { period: "Feb 2024", imports: 135000000, exports: 102000000 },
-  { period: "Mar 2024", imports: 140000000, exports: 108000000 },
-  { period: "Apr 2024", imports: 138000000, exports: 115000000 },
-  { period: "May 2024", imports: 142000000, exports: 118000000 },
-  { period: "Jun 2024", imports: 145000000, exports: 125000000 },
-  { period: "Jul 2024", imports: 148000000, exports: 130000000 },
-  { period: "Aug 2024", imports: 152000000, exports: 135000000 },
-  { period: "Sep 2024", imports: 155000000, exports: 140000000 },
-  { period: "Oct 2024", imports: 158000000, exports: 145000000 },
-  { period: "Nov 2024", imports: 162000000, exports: 150000000 },
-  { period: "Dec 2024", imports: 165000000, exports: 155000000 }
+  { period: "Jan 2022", imports: 125000000, exports: 95000000 },
+  { period: "Feb 2022", imports: 135000000, exports: 102000000 },
+  { period: "Mar 2022", imports: 140000000, exports: 108000000 },
+  { period: "Apr 2022", imports: 138000000, exports: 115000000 },
+  { period: "May 2022", imports: 142000000, exports: 118000000 },
+  { period: "Jun 2022", imports: 145000000, exports: 125000000 },
+  { period: "Jul 2022", imports: 148000000, exports: 130000000 },
+  { period: "Aug 2022", imports: 152000000, exports: 135000000 },
+  { period: "Sep 2022", imports: 155000000, exports: 140000000 },
+  { period: "Oct 2022", imports: 158000000, exports: 145000000 },
+  { period: "Nov 2022", imports: 162000000, exports: 150000000 },
+  { period: "Dec 2022", imports: 165000000, exports: 155000000 }
 ];
 
 export const mockTopPartners = [

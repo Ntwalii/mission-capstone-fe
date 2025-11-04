@@ -170,9 +170,6 @@ export default function AuthPage() {
         {/* left */}
         <div className="hidden md:block text-white space-y-6 px-8">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-7 h-7" />
-            </div>
             <div>
               <h1 className="text-2xl font-bold">Rwanda Trade Pulse</h1>
               <p className="text-blue-300 text-sm">
@@ -194,11 +191,7 @@ export default function AuthPage() {
           </div>
 
           <div className="space-y-3 pt-6">
-            {[
-              "Advanced Analytics Dashboard",
-              "Real-time Trade Data",
-              "Custom Reports & Insights",
-            ].map((feature, i) => (
+            {["Advanced Analytics Dashboard"].map((feature, i) => (
               <div key={i} className="flex items-center gap-3 text-blue-100">
                 <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
                   <div className="w-2 h-2 rounded-full bg-blue-400" />

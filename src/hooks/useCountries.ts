@@ -5,7 +5,7 @@ export default function useCountries() {
   return useAxios(
     {
       headers: { Authorization: `Bearer ${getAuthToken()}` },
-      url: `${apiUrl}/items/partners`,
+      url: `${apiUrl}/v1/items/partners`,
       method: "GET",
     },
     { manual: true }
