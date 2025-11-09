@@ -27,7 +27,7 @@ import useCountries from "@/hooks/useCountries";
 import useCommodities from "@/hooks/useCommodities";
 import Loader from "@/components/ui/Loader";
 
-const years = [2025, 2024, 2023, 2022, 2021, 2020];
+const years = [2022, 2021, 2020];
 const ANY = "__ANY__";
 
 export default function WhatIf() {
@@ -69,7 +69,7 @@ export default function WhatIf() {
   // Fetch countries (partners)
   useEffect(() => {
     void fetchCountries({
-      params: { withData: true, year: 2022 },
+      params: { withData: true, year },
     });
   }, [year, fetchCountries]);
 

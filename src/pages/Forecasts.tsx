@@ -13,15 +13,10 @@ import {
 } from "@/components/ui/select";
 import { AlertCircle, TrendingUp, Target, Loader2 } from "lucide-react";
 
-/* -------------------------------------------------
-   1. API URL – set in .env.local
-   ------------------------------------------------- */
 // VITE_MODEL_SERVICE_URL=http://localhost:1738
-const API = import.meta.env.VITE_MODEL_SERVICE_URL || "http://localhost:1738";
+const API = import.meta.env.VITE_MODEL_SERVICE_URL;
 
-/* -------------------------------------------------
-   2. Types
-   ------------------------------------------------- */
+/* Types */
 interface AgriProduct {
   product_code: string;
   current_value_usd: number;
@@ -30,7 +25,8 @@ interface AgriProduct {
 interface Market {
   partner_iso3: string;
   current_value_usd: number;
-  growth_pct: number | null;
+  projected_value_usd?: number; // NEW
+  growth_pct: number | null; // horizon-compounded %
 }
 interface Commodity {
   id: number;
@@ -55,52 +51,47 @@ interface Forecast {
   partner_iso3: string;
   year: number;
   predicted_value_usd: number;
-  growth_from_2022: number;
-}
-interface Insight {
-  insight: string;
-  confidence: number;
-  category: string;
+  growth_from_2022?: number;
+  growth_from_2024?: number;
 }
 
-/* -------------------------------------------------
-   3. Component
-   ------------------------------------------------- */
 export default function Forecast() {
-  /* ---------- State ---------- */
   const [topProducts, setTopProducts] = useState<AgriProduct[]>([]);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [commodities, setCommodities] = useState<Commodity[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [insights, setInsights] = useState<Insight | null>(null);
+  const [insights, setInsights] = useState<{
+    insight: string;
+    confidence: number;
+    category: string;
+  } | null>(null);
 
   const [selectedProductCode, setSelectedProductCode] = useState<string>("");
   const [selectedPartnerIso3, setSelectedPartnerIso3] = useState<string>("");
   const [targetYear, setTargetYear] = useState(2025);
-
-  // NEW: horizon for Top Markets
   const [marketHorizon, setMarketHorizon] = useState<number>(1);
 
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [forecasts, setForecasts] = useState<Forecast[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [predicting, setPredicting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /* ---------- Helpers ---------- */
-  const formatMoney = (v: number) => `$${Math.round(v / 1e6)}M`;
+  const formatMoney = (v: number) => {
+    if (v > 0 && v < 1_000_000) return "<$1M";
+    return `$${Math.round(v / 1e6)}M`;
+  };
   const fmtPct = (v: number) => `${(Math.round(v * 10) / 10).toFixed(1)}%`;
 
-  const selectedProduct = useMemo(() => {
-    return commodities.find((c) => c.code === selectedProductCode);
-  }, [commodities, selectedProductCode]);
+  const selectedProduct = useMemo(
+    () => commodities.find((c) => c.code === selectedProductCode),
+    [commodities, selectedProductCode]
+  );
+  const selectedPartner = useMemo(
+    () => partners.find((p) => p.iso3 === selectedPartnerIso3),
+    [partners, selectedPartnerIso3]
+  );
 
-  const selectedPartner = useMemo(() => {
-    return partners.find((p) => p.iso3 === selectedPartnerIso3);
-  }, [partners, selectedPartnerIso3]);
-
-  // Only growing markets
   const growingMarkets = useMemo(
     () =>
       markets.filter(
@@ -109,14 +100,12 @@ export default function Forecast() {
     [markets]
   );
 
-  /* ---------- API Calls ---------- */
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
       const [prods, mkts, coms, parts, ins] = await Promise.all([
         fetch(`${API}/agri-products`).then((r) => (r.ok ? r.json() : [])),
-        // pass horizon to BE (safe even if BE ignores it)
         fetch(`${API}/markets?horizon=${marketHorizon}`).then((r) =>
           r.ok ? r.json() : []
         ),
@@ -126,7 +115,7 @@ export default function Forecast() {
         fetch(`${API}/partners?withData=true&year=2022`).then((r) =>
           r.ok ? r.json() : []
         ),
-        fetch(`${API}/model/insights`)
+        fetch(`${API}/insights`)
           .then((r) => (r.ok ? r.json() : []))
           .then((arr) => arr[0] ?? null),
       ]);
@@ -154,7 +143,6 @@ export default function Forecast() {
     setForecasts([]);
 
     try {
-      // Single-year prediction
       const predRes = await fetch(`${API}/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -170,7 +158,6 @@ export default function Forecast() {
       const predData = ((await predRes.json()) as Prediction[])[0];
       setPrediction(predData);
 
-      // Multi-year forecast
       const fcRes = await fetch(`${API}/forecast`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -190,17 +177,12 @@ export default function Forecast() {
     }
   };
 
-  /* ---------- Effects ---------- */
   useEffect(() => {
     fetchData();
-  }, [marketHorizon]); // re-fetch when horizon changes
+  }, [marketHorizon]);
 
-  /* -------------------------------------------------
-     4. Render
-     ------------------------------------------------- */
   return (
     <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -212,7 +194,6 @@ export default function Forecast() {
         </div>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-600" />
@@ -245,9 +226,7 @@ export default function Forecast() {
                 <div>
                   <p className="text-sm text-muted-foreground">Agri Growth</p>
                   <p className="text-2xl font-bold text-blue-600">
-                    {insights?.insight.includes("growth")
-                      ? insights.insight.match(/\+([\d.]+)%/)?.[1] + "%"
-                      : "—"}
+                    {insights?.insight}
                   </p>
                   <p className="text-xs text-muted-foreground">Next year</p>
                 </div>
@@ -266,11 +245,8 @@ export default function Forecast() {
                   </p>
                   <p className="text-2xl font-bold">
                     {insights?.confidence
-                      ? `${Math.round(insights.confidence * 100)}%`
+                      ? `${Math.round(insights.confidence)}%`
                       : "—"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {insights?.category ?? "Unknown"}
                   </p>
                 </div>
               </div>
@@ -279,7 +255,6 @@ export default function Forecast() {
         </div>
       )}
 
-      {/* Tabs */}
       <Tabs defaultValue="products" className="mt-8">
         <TabsList className="grid w-full max-w-lg grid-cols-3">
           <TabsTrigger value="products">Top Products</TabsTrigger>
@@ -379,6 +354,9 @@ export default function Forecast() {
                     const partner = partners.find(
                       (p) => p.iso3 === m.partner_iso3
                     );
+                    // Use projected_value_usd if present (this changes with horizon)
+                    const displayValue =
+                      m.projected_value_usd ?? m.current_value_usd;
                     return (
                       <div
                         key={m.partner_iso3}
@@ -396,7 +374,7 @@ export default function Forecast() {
                         </div>
                         <div className="flex items-center gap-4">
                           <span className="font-semibold text-lg">
-                            {formatMoney(m.current_value_usd)}
+                            {formatMoney(displayValue)}
                           </span>
                           <Badge variant="default">
                             +{fmtPct(m.growth_pct!)}
@@ -475,6 +453,8 @@ export default function Forecast() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="2023">2023</SelectItem>
+                      <SelectItem value="2024">2024</SelectItem>
                       <SelectItem value="2025">2025</SelectItem>
                       <SelectItem value="2026">2026</SelectItem>
                       <SelectItem value="2027">2027</SelectItem>
