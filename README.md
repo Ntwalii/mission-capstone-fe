@@ -8,7 +8,7 @@ Deployed URL: https://mission-capstone-fe.vercel.app/
 
 Video Demo: 
 
-Add your YouTube link when ready.
+[Loom video recording.](https://www.loom.com/share/25b73debe2c44016a87adcfbaec622f5)
 
 ## Table of Contents
 
@@ -82,7 +82,7 @@ npm run dev
 VITE_API_URL=http://localhost:8000
 VITE_AUTH_API_URL=http://localhost:8001
 
-✅ Testing Results (illustrative)
+Testing Results (illustrative)
 Strategies
 
 E2E smoke: critical flows (login → dashboard → forecast)
@@ -97,26 +97,21 @@ Empty Data Case: graceful “No data” rendering.
 
 Large Series Rendering: time-series chart handles 10k+ points acceptably.
 
-Perf (qualitative)
-Spec	Load	Interactivity	Notes
-High-end desktop	~1.2s	Smooth	Local services
-Mid-range laptop	~2.5s	Smooth	
-Mobile	~4.0s	Acceptable	
-📈 Model Performance (Time Series)
+### Perf (qualitative)
+#### Spec	Load	Interactivity	Notes
+1. High-end desktop	~1.2s	Smooth	Local services
+2. Mid-range laptop	~2.5s	Smooth	
+3. Mobile	~4.0s	Acceptable
 
-The model-service exposes a trained model for trade-value forecasting. Evaluate with standard metrics (MAE, MSE, RMSE, R²) and visualize Actual vs Predicted. (Add your numbers/plots once finalized.)
 
-You planned/justify testing multiple forecasters (ARIMA, Prophet, LSTM) to pick the best per series; anomaly methods (Isolation Forest / One-Class SVM) are part of the design for irregularity detection. 
-
-🔬 Analysis
+Analysis
 
 The system shifts from static, descriptive reporting toward predictive and anomaly-aware analytics targeted at non-government stakeholders (researchers, NGOs, investors).
 
 Mixed-methods evaluation (quant + qual) ensures both technical validity and usability. 
 
-Aubin_Ntwali_Proposal_mission C…
 
-💬 Discussion
+Discussion
 
 Authentication unblocked role-based features and secure routes.
 
