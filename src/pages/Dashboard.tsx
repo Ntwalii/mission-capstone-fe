@@ -88,12 +88,11 @@ export default function Dashboard() {
         await getStats({
           url: `${apiUrl}/v1/items/stats?year=${year}`,
         });
-        setParams({ year });
       } catch (err) {
         console.error("Failed to fetch stats:", err);
       }
     },
-    [getStats, setParams]
+    [getStats]
   );
 
   const fetchTopCommodities = useCallback(
@@ -129,12 +128,23 @@ export default function Dashboard() {
     fetchContinents(selectedYear);
   }, [selectedYear, fetchStats, fetchTopCommodities, fetchContinents]);
 
+  // Update context params when year changes
+  useEffect(() => {
+    setParams({ year: selectedYear });
+  }, [selectedYear, setParams]);
+
   // Push stats into context for global access
   useEffect(() => {
     if (data) setStats(data);
   }, [data, setStats]);
 
-  const handleYearChange = (year: Year) => setSelectedYear(year);
+  const handleYearChange = useCallback((year: Year) => {
+    setSelectedYear(year);
+  }, []);
+
+  const handleMetricChange = useCallback((metric: Metric) => {
+    setPartnerMetric(metric);
+  }, []);
 
   // ---- Process real API data for charts ----
   const quarterlyTrade: TradeFlowData[] = useMemo(() => {
@@ -244,7 +254,7 @@ export default function Dashboard() {
               {(["exports", "imports"] as Metric[]).map((m) => (
                 <DropdownMenuItem
                   key={m}
-                  onClick={() => setPartnerMetric(m)}
+                  onClick={() => handleMetricChange(m)}
                   className={partnerMetric === m ? "bg-accent" : ""}
                 >
                   {m[0].toUpperCase() + m.slice(1)}
