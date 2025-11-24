@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { KpiCard } from "@/components/ui/kpi-card";
 import { TradeChart } from "@/components/charts/TradeChart";
 import { TopPartnersChart } from "@/components/charts/TopPartnersChart";
@@ -54,7 +54,6 @@ type PartnerData = {
 
 type CommodityData = {
   commodityId?: string;
-  s;
   productName: string;
   category?: string;
   rank?: number;
@@ -82,45 +81,53 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState<Year>(2022);
   const [partnerMetric, setPartnerMetric] = useState<Metric>("exports");
 
-  // Fetch stats on year change
-  useEffect(() => {
-    (async () => {
+  // Memoize API calls to prevent infinite re-renders
+  const fetchStats = useCallback(
+    async (year: Year) => {
       try {
         await getStats({
-          url: `${apiUrl}/v1/items/stats?year=${selectedYear}`,
+          url: `${apiUrl}/v1/items/stats?year=${year}`,
         });
-        setParams({ year: selectedYear });
+        setParams({ year });
       } catch (err) {
         console.error("Failed to fetch stats:", err);
       }
-    })();
-  }, [selectedYear, getStats, setParams]);
+    },
+    [getStats, setParams]
+  );
 
-  // Fetch top commodities on year change
-  useEffect(() => {
-    (async () => {
+  const fetchTopCommodities = useCallback(
+    async (year: Year) => {
       try {
         await getTopCommodities({
-          url: `${apiUrl}/v1/items/stats/top-exports?year=${selectedYear}&limit=5`,
+          url: `${apiUrl}/v1/items/stats/top-exports?year=${year}&limit=5`,
         });
       } catch (err) {
         console.error("Failed to fetch top commodities:", err);
       }
-    })();
-  }, [selectedYear, getTopCommodities]);
+    },
+    [getTopCommodities]
+  );
 
-  // Fetch continents on year change
-  useEffect(() => {
-    (async () => {
+  const fetchContinents = useCallback(
+    async (year: Year) => {
       try {
         await getContinents({
-          url: `${apiUrl}/v1/items/stats/continents?year=${selectedYear}`,
+          url: `${apiUrl}/v1/items/stats/continents?year=${year}`,
         });
       } catch (err) {
         console.error("Failed to fetch continents:", err);
       }
-    })();
-  }, [selectedYear, getContinents]);
+    },
+    [getContinents]
+  );
+
+  // Fetch all data when year changes
+  useEffect(() => {
+    fetchStats(selectedYear);
+    fetchTopCommodities(selectedYear);
+    fetchContinents(selectedYear);
+  }, [selectedYear, fetchStats, fetchTopCommodities, fetchContinents]);
 
   // Push stats into context for global access
   useEffect(() => {
