@@ -4,6 +4,7 @@ Welcome to the mission capstone frontend. This app powers interactive analysis, 
 
 Backend services live separately in mission-capstone-be (auth, basic data, model). [Rwanda Trade Pulse Backend.](https://github.com/Ntwalii/mission-capstone-fe)
 
+
 Deployed URL: https://mission-capstone-fe.vercel.app/
 
 Video Demo: 
