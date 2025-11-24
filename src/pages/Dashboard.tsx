@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { fmtMoney } from "@/lib/utils";
 import { useTradeApi } from "@/context/TradeApi";
+import { apiUrl } from "@/utils/apiUrl";
 import useStats from "@/hooks/useStats";
 import useTopCommodities from "@/hooks/useTopCommodities";
 import useContinents from "@/hooks/useContinents";
@@ -37,68 +38,29 @@ type Year = (typeof availableYears)[number];
 type Metric = "exports" | "imports";
 
 /* --------------------------------
-   Deterministic fake data helpers
-   (seeded RNG so each year is stable)
+   Helper types for API data
 ----------------------------------*/
-function mulberry32(seed: number) {
-  // eslint-disable-next-line no-bitwise
-  let t = seed + 0x6d2b79f5;
-  return () => {
-    // eslint-disable-next-line no-bitwise
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    // eslint-disable-next-line no-bitwise
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+type TradeFlowData = {
+  period: string;
+  exports: number;
+  imports: number;
+  balance?: number;
+};
 
-function genQuarterlyTradeData(year: Year) {
-  // Base values vary by year but remain stable due to seed
-  const rnd = mulberry32(year);
-  const baseExports = 100_000_000 + Math.floor(rnd() * 30_000_000); // $100–130M
-  const baseImports = 130_000_000 + Math.floor(rnd() * 30_000_000); // $130–160M
+type PartnerData = {
+  country: string;
+  value: number;
+};
 
-  // Slight quarter-to-quarter drift
-  const q = ["Q1", "Q2", "Q3", "Q4"].map((label, i) => {
-    const driftE = (rnd() - 0.5) * 0.12; // ±12%
-    const driftI = (rnd() - 0.5) * 0.1; // ±10%
-    const exports = Math.round(baseExports * (1 + 0.05 * i) * (1 + driftE));
-    const imports = Math.round(baseImports * (1 + 0.04 * i) * (1 + driftI));
-    return { quarter: label, exports, imports, balance: exports - imports };
-  });
-
-  return q;
-}
-
-type PartnerRow = { partner: string; value: number };
-const PARTNER_POOL = [
-  "USA",
-  "Germany",
-  "Belgium",
-  "UAE",
-  "China",
-  "Kenya",
-  "India",
-  "Tanzania",
-  "DRC",
-  "Uganda",
-] as const;
-
-function genTopPartners(year: Year, metric: Metric, topN = 6): PartnerRow[] {
-  const rnd = mulberry32(Number(`${year}${metric === "exports" ? 1 : 2}`));
-  // Create a stable but varied ranking each year/metric
-  const rows = PARTNER_POOL.map((name, idx) => {
-    // Weighted base so the first few are usually larger
-    const base = (PARTNER_POOL.length - idx) * (metric === "exports" ? 9 : 10);
-    const noise = 0.6 + rnd() * 0.8; // 0.6–1.4
-    const value = Math.round(base * noise * 10_000_00); // scale to ~$6–$14M-ish
-    return { partner: name, value };
-  })
-    .sort((a, b) => b.value - a.value)
-    .slice(0, topN);
-
-  return rows;
-}
+type CommodityData = {
+  commodityId?: string;
+  s;
+  productName: string;
+  category?: string;
+  rank?: number;
+  value?: number;
+  growthPct?: number;
+};
 
 /* --------------------------------
    Component
@@ -124,52 +86,102 @@ export default function Dashboard() {
   useEffect(() => {
     (async () => {
       try {
-        await getStats({ params: { year: selectedYear } });
+        await getStats({
+          url: `${apiUrl}/v1/items/stats?year=${selectedYear}`,
+        });
         setParams({ year: selectedYear });
       } catch (err) {
         console.error("Failed to fetch stats:", err);
       }
     })();
-  }, [selectedYear]);
+  }, [selectedYear, getStats, setParams]);
 
   // Fetch top commodities on year change
   useEffect(() => {
     (async () => {
       try {
-        await getTopCommodities({ params: { year: selectedYear, limit: 5 } });
+        await getTopCommodities({
+          url: `${apiUrl}/v1/items/stats/top-exports?year=${selectedYear}&limit=5`,
+        });
       } catch (err) {
         console.error("Failed to fetch top commodities:", err);
       }
     })();
-  }, [selectedYear]);
+  }, [selectedYear, getTopCommodities]);
 
   // Fetch continents on year change
   useEffect(() => {
     (async () => {
       try {
-        await getContinents({ params: { year: selectedYear } });
+        await getContinents({
+          url: `${apiUrl}/v1/items/stats/continents?year=${selectedYear}`,
+        });
       } catch (err) {
         console.error("Failed to fetch continents:", err);
       }
     })();
-  }, [selectedYear]);
+  }, [selectedYear, getContinents]);
 
   // Push stats into context for global access
   useEffect(() => {
     if (data) setStats(data);
-  }, [data]);
+  }, [data, setStats]);
 
   const handleYearChange = (year: Year) => setSelectedYear(year);
 
-  // ---- Derived (fake) chart data tied to selectedYear ----
-  const quarterlyTrade = useMemo(
-    () => genQuarterlyTradeData(selectedYear),
-    [selectedYear]
-  );
-  const partnersData = useMemo(
-    () => genTopPartners(selectedYear, partnerMetric, 6),
-    [selectedYear, partnerMetric]
-  );
+  // ---- Process real API data for charts ----
+  const quarterlyTrade: TradeFlowData[] = useMemo(() => {
+    if (!data?.Deepdata) {
+      // Fallback empty data if no API data available
+      return [];
+    }
+
+    // Transform the backend Deepdata (Q1, Q2, Q3, Q4) into chart format
+    return Object.entries(data.Deepdata).map(([quarter, totalValue]) => {
+      const value = Number(totalValue) || 0;
+      // For quarterly data, we'll split the total into estimated exports/imports
+      // This is a rough approximation based on the overall trade balance
+      const exportRatio = data.exports
+        ? data.exports / (data.exports + data.imports)
+        : 0.5;
+      return {
+        period: quarter,
+        exports: Math.round(value * exportRatio),
+        imports: Math.round(value * (1 - exportRatio)),
+        balance: Math.round(value * (2 * exportRatio - 1)),
+      };
+    });
+  }, [data]);
+
+  const partnersData: PartnerData[] = useMemo(() => {
+    if (!data?.countryData) {
+      // Fallback empty data if no API data available
+      return [];
+    }
+
+    // Transform the backend countryData into chart format
+    return Object.entries(data.countryData)
+      .map(
+        ([countryName, countryInfo]: [
+          string,
+          { export: number; import: number; totalTradeValue: number }
+        ]) => {
+          // Use the selected metric (exports or imports) for the value
+          const value =
+            partnerMetric === "exports"
+              ? countryInfo.export || 0
+              : countryInfo.import || 0;
+
+          return {
+            country: countryName,
+            value: Number(value),
+          };
+        }
+      )
+      .filter((item) => item.value > 0) // Only include partners with trade value
+      .sort((a, b) => b.value - a.value) // Sort by value descending
+      .slice(0, 10); // Take top 10
+  }, [data, partnerMetric]);
 
   // Loading gate for the KPI row
   if (loading) return <Loader />;
@@ -285,23 +297,20 @@ export default function Dashboard() {
             <TradeChart
               title={`Trade Flow Trends — ${selectedYear}`}
               data={quarterlyTrade.map((d) => ({
-                // adapt to your chart’s expected keys
-                label: d.quarter,
+                period: d.period,
                 exports: d.exports,
                 imports: d.imports,
               }))}
               type="line"
               height={350}
-              // Optional: if your TradeChart accepts series labels
-              // series={[{ key: "exports", name: "Exports" }, { key: "imports", name: "Imports" }]}
             />
 
             {/* Top trading partners (functional) */}
             <TopPartnersChart
               title={`Top Trading Partners — ${selectedYear} (${partnerMetric})`}
               data={partnersData.map((p) => ({
-                country: p.partner, // was name
-                value: p.value, // was amount
+                country: p.country,
+                value: p.value,
               }))}
               height={350}
             />
@@ -324,9 +333,9 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {(topCommodities ?? [])
+                    {((topCommodities as CommodityData[]) ?? [])
                       .slice(0, 5)
-                      .map((p: any, idx: number) => (
+                      .map((p: CommodityData, idx: number) => (
                         <div
                           key={p.commodityId ?? idx}
                           className="flex items-center justify-between"
