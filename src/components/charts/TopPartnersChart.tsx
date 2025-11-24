@@ -56,8 +56,8 @@ export function TopPartnersChart({
           <ResponsiveContainer width="100%" height={height}>
             <BarChart
               data={data}
-              layout="vertical"
-              margin={{ top: 10, right: 30, left: 100, bottom: 10 }}
+              layout="vertical" // <-- was "horizontal"
+              margin={{ top: 10, right: 24, left: 100, bottom: 10 }}
               barCategoryGap="20%"
             >
               <CartesianGrid
@@ -66,16 +66,18 @@ export function TopPartnersChart({
               />
               <XAxis
                 type="number"
+                domain={[0, "dataMax"]} // keep domain sane
+                allowDecimals={false}
                 tick={{ fontSize: 12 }}
-                tickFormatter={formatValue}
                 stroke="hsl(var(--muted-foreground))"
+                tickFormatter={formatValue}
               />
               <YAxis
                 type="category"
                 dataKey="country"
                 tick={{ fontSize: 12 }}
                 stroke="hsl(var(--muted-foreground))"
-                width={100}
+                width={100} // reserve space for labels
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar

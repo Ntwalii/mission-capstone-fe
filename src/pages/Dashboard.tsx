@@ -300,8 +300,8 @@ export default function Dashboard() {
             <TopPartnersChart
               title={`Top Trading Partners — ${selectedYear} (${partnerMetric})`}
               data={partnersData.map((p) => ({
-                name: p.partner,
-                amount: p.value,
+                country: p.partner, // was name
+                value: p.value, // was amount
               }))}
               height={350}
             />
