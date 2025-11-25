@@ -155,10 +155,6 @@ export default function Network() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Configure
-          </Button>
         </div>
       </div>
 

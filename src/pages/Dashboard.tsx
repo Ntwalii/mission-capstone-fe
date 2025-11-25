@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   ChevronDown,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { fmtMoney } from "@/lib/utils";
 import { useTradeApi } from "@/context/TradeApi";
@@ -172,7 +173,7 @@ export default function Dashboard() {
   );
 
   // Loading gate for the KPI row
-  if (loading) return <Loader />;
+  if (loading) return <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
 
   return (
     <div className="space-y-6">
