@@ -7,6 +7,7 @@ Backend services live separately in mission-capstone-be (auth, basic data, model
 
 Deployed URL: https://mission-capstone-fe.vercel.app/
 
+
 Video Demo: 
 
 [Loom video recording.](https://www.loom.com/share/25b73debe2c44016a87adcfbaec622f5)
