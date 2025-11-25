@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, TrendingUp, Target, Loader2 } from "lucide-react";
+import { AlertCircle, TrendingUp, Loader2 } from "lucide-react";
 
 // VITE_MODEL_SERVICE_URL=http://localhost:1738
 const API = import.meta.env.VITE_MODEL_SERVICE_URL;
@@ -233,20 +233,19 @@ export default function Forecast() {
               </div>
             </CardContent>
           </Card>
+          {/* Disclaimer replaces the Model Confidence block */}
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-100">
-                  <Target className="h-6 w-6 text-green-600" />
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-amber-100">
+                  <AlertCircle className="h-6 w-6 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">
-                    Model Confidence
-                  </p>
-                  <p className="text-2xl font-bold">
-                    {insights?.confidence
-                      ? `${Math.round(insights.confidence)}%`
-                      : "—"}
+                  <p className="text-sm text-muted-foreground">Disclaimer</p>
+                  <p className="text-sm md:text-base leading-snug">
+                    Forecasts are indicative and can be wrong; outcomes may be
+                    influenced by inflation, policy and diplomacy, supply
+                    chains, weather, and other shocks.
                   </p>
                 </div>
               </div>

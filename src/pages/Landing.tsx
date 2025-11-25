@@ -256,7 +256,15 @@ const Landing = () => {
               <Globe className="h-5 w-5 text-primary" />
               <span className="font-semibold">Rwanda Trade Pulse</span>
             </div>
-            <p className="text-sm text-muted-foreground">©2025 Rwanda</p>
+            <div className="flex gap-4 items-center">
+              <p className="text-sm text-muted-foreground">©2025 Rwanda</p>
+              <Link
+                to="/privacy-policy"
+                className="text-sm text-muted-foreground hover:text-primary"
+              >
+                Privacy Policy
+              </Link>
+            </div>
           </div>
         </div>
       </footer>

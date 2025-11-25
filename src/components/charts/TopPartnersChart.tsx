@@ -1,5 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface TopPartnersChartProps {
   title: string;
@@ -11,10 +19,16 @@ interface TopPartnersChartProps {
   height?: number;
 }
 
-export function TopPartnersChart({ title, data, height = 300 }: TopPartnersChartProps) {
+export function TopPartnersChart({
+  title,
+  data,
+  height = 300,
+}: TopPartnersChartProps) {
   const formatValue = (value: number) => {
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
+    if (value >= 1_000_000_000)
+      return `$${(value / 1_000_000_000).toFixed(1)}B`;
+    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
     return `$${value}`;
   };
 
@@ -38,34 +52,47 @@ export function TopPartnersChart({ title, data, height = 300 }: TopPartnersChart
         <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={height}>
-          <BarChart 
-            data={data} 
-            layout="horizontal"
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis 
-              type="number"
-              tick={{ fontSize: 12 }}
-              stroke="hsl(var(--muted-foreground))"
-              tickFormatter={formatValue}
-            />
-            <YAxis 
-              type="category"
-              dataKey="country"
-              tick={{ fontSize: 12 }}
-              stroke="hsl(var(--muted-foreground))"
-              width={80}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar 
-              dataKey="value" 
-              fill="hsl(var(--chart-1))" 
-              radius={[0, 4, 4, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        {data && data.length > 0 ? (
+          <ResponsiveContainer width="100%" height={height}>
+            <BarChart
+              data={data}
+              layout="vertical" // <-- was "horizontal"
+              margin={{ top: 10, right: 24, left: 100, bottom: 10 }}
+              barCategoryGap="20%"
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
+              <XAxis
+                type="number"
+                domain={[0, "dataMax"]} // keep domain sane
+                allowDecimals={false}
+                tick={{ fontSize: 12 }}
+                stroke="hsl(var(--muted-foreground))"
+                tickFormatter={formatValue}
+              />
+              <YAxis
+                type="category"
+                dataKey="country"
+                tick={{ fontSize: 12 }}
+                stroke="hsl(var(--muted-foreground))"
+                width={100} // reserve space for labels
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar
+                dataKey="value"
+                fill="hsl(var(--chart-1))"
+                radius={[0, 4, 4, 0]}
+                barSize={22}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            No data available.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

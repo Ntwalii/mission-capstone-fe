@@ -17,6 +17,7 @@ import WhatIf from "./pages/WhatIf";
 import AuthPage from "./pages/AuthPage";
 import RequireAuth from "./routes/RequireAuth";
 import AuthCallback from "./pages/AuthCallback";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { TradeApiProvider } from "./context/TradeApi";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
             {/* Private (gated) */}
             <Route

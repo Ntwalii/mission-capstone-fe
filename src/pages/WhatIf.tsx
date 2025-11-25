@@ -299,10 +299,17 @@ export default function WhatIf() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData}>
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 8, right: 16, bottom: 8, left: 64 }} // added left margin
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
-                    <YAxis tickFormatter={(v) => v.toLocaleString()} />
+                    <YAxis
+                      width={80} // reserve space for labels
+                      allowDecimals={false}
+                      tickFormatter={(v) => Number(v).toLocaleString()}
+                    />
                     <Tooltip formatter={(v: number) => v.toLocaleString()} />
                     <Legend />
                     <Bar dataKey="export" fill="#8884d8" name="Total Exports" />

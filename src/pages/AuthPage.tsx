@@ -19,15 +19,18 @@ const setToken = (t: string) => localStorage.setItem("token", t);
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
 
-  // form
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  // ---- LOGIN state (isolated) ----
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
-  // role for sign-up + social
-  const [role, setRole] = useState("");
-  const [customRole, setCustomRole] = useState("");
+  // ---- REGISTER state (isolated) ----
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regRole, setRegRole] = useState("");
+  const [regCustomRole, setRegCustomRole] = useState("");
 
+  // shared ui
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,14 +63,14 @@ export default function AuthPage() {
       startSocial(provider);
     } else {
       // SIGN UP: ask for role
-      setPendingSocialProvider(provider);
+      setPendingSocialProvider(provider as Provider);
       setShowRoleModal(true);
     }
   };
 
   const completeSocialLogin = () => {
     setError("");
-    const finalRole = role === "other" ? customRole.trim() : role;
+    const finalRole = regRole === "other" ? regCustomRole.trim() : regRole;
     if (!finalRole) {
       setError("Please select a role to continue");
       return;
@@ -77,7 +80,7 @@ export default function AuthPage() {
       return;
     }
     // backend will save this in a short-lived cookie and then redirect to provider
-    startSocial(pendingSocialProvider, finalRole, name);
+    startSocial(pendingSocialProvider, finalRole, regName);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,13 +90,14 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
+        // ---- LOGIN uses loginEmail/loginPassword only ----
         const res = await fetch(`${AUTH_BASE}/auth/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email: loginEmail, password: loginPassword }),
         });
         if (!res.ok) {
           const t = await res.text();
@@ -104,12 +108,13 @@ export default function AuthPage() {
         setToken(data.token);
         navigate(from, { replace: true });
       } else {
-        // SIGN UP: create user then auto-login
-        const job_position = role === "other" ? customRole.trim() : role;
+        // ---- REGISTER uses only reg* state ----
+        const job_position =
+          regRole === "other" ? regCustomRole.trim() : regRole;
         if (!job_position) throw new Error("Please pick your role");
 
         // we will store username as email's local-part (or you can use the full email)
-        const username = email.split("@")[0];
+        const username = regEmail.split("@")[0];
 
         const res = await fetch(`${AUTH_BASE}/auth/register`, {
           method: "POST",
@@ -119,9 +124,9 @@ export default function AuthPage() {
           },
           body: JSON.stringify({
             username,
-            password,
-            email,
-            full_name: name,
+            password: regPassword,
+            email: regEmail,
+            full_name: regName,
             job_position,
           }),
         });
@@ -137,7 +142,7 @@ export default function AuthPage() {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password: regPassword }),
         });
         if (loginRes.ok) {
           const data = await loginRes.json();
@@ -151,11 +156,23 @@ export default function AuthPage() {
           navigate("/auth");
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       setError(err?.message || "Authentication failed. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const switchMode = (login: boolean) => {
+    setIsLogin(login);
+    setError("");
+    // optional: keep fields, or clear when switching modes.
+    // Uncomment below if you'd like a clean slate on toggle:
+    // if (login) {
+    //   setRegName(""); setRegEmail(""); setRegPassword(""); setRegRole(""); setRegCustomRole("");
+    // } else {
+    //   setLoginEmail(""); setLoginPassword("");
+    // }
   };
 
   return (
@@ -212,7 +229,7 @@ export default function AuthPage() {
             <div className="flex gap-2 p-1 bg-white/5 rounded-lg mb-6">
               <button
                 type="button"
-                onClick={() => setIsLogin(true)}
+                onClick={() => switchMode(true)}
                 className={`flex-1 py-2.5 rounded-md font-medium transition-all ${
                   isLogin
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
@@ -223,7 +240,7 @@ export default function AuthPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setIsLogin(false)}
+                onClick={() => switchMode(false)}
                 className={`flex-1 py-2.5 rounded-md font-medium transition-all ${
                   !isLogin
                     ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
@@ -273,6 +290,7 @@ export default function AuthPage() {
 
             {/* form fields */}
             <div className="space-y-4">
+              {/* REGISTER-ONLY FIELDS */}
               {!isLogin && (
                 <>
                   <div>
@@ -283,8 +301,8 @@ export default function AuthPage() {
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300" />
                       <input
                         type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
                         className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:border-blue-400 focus:bg-white/10 transition-all"
                         placeholder="John Doe"
                         required={!isLogin}
@@ -299,10 +317,10 @@ export default function AuthPage() {
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300" />
                       <select
-                        value={role}
+                        value={regRole}
                         onChange={(e) => {
-                          setRole(e.target.value);
-                          if (e.target.value !== "other") setCustomRole("");
+                          setRegRole(e.target.value);
+                          if (e.target.value !== "other") setRegCustomRole("");
                         }}
                         className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-400 focus:bg-white/10 transition-all appearance-none cursor-pointer"
                         required={!isLogin}
@@ -334,12 +352,12 @@ export default function AuthPage() {
                       </select>
                     </div>
 
-                    {role === "other" && (
+                    {regRole === "other" && (
                       <div className="mt-3">
                         <input
                           type="text"
-                          value={customRole}
-                          onChange={(e) => setCustomRole(e.target.value)}
+                          value={regCustomRole}
+                          onChange={(e) => setRegCustomRole(e.target.value)}
                           className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:border-blue-400 focus:bg-white/10 transition-all"
                           placeholder="Specify your role"
                           required
@@ -350,6 +368,7 @@ export default function AuthPage() {
                 </>
               )}
 
+              {/* EMAIL */}
               <div>
                 <label className="block text-sm font-medium text-blue-200 mb-2">
                   Email
@@ -358,8 +377,12 @@ export default function AuthPage() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300" />
                   <input
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={isLogin ? loginEmail : regEmail}
+                    onChange={(e) =>
+                      isLogin
+                        ? setLoginEmail(e.target.value)
+                        : setRegEmail(e.target.value)
+                    }
                     className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:border-blue-400 focus:bg-white/10 transition-all"
                     placeholder="you@example.com"
                     required
@@ -367,6 +390,7 @@ export default function AuthPage() {
                 </div>
               </div>
 
+              {/* PASSWORD */}
               <div>
                 <label className="block text-sm font-medium text-blue-200 mb-2">
                   Password
@@ -375,8 +399,12 @@ export default function AuthPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-300" />
                   <input
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={isLogin ? loginPassword : regPassword}
+                    onChange={(e) =>
+                      isLogin
+                        ? setLoginPassword(e.target.value)
+                        : setRegPassword(e.target.value)
+                    }
                     className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:border-blue-400 focus:bg-white/10 transition-all"
                     placeholder="••••••••"
                     required
@@ -427,7 +455,7 @@ export default function AuthPage() {
                 : "Already have an account? "}
               <button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => switchMode(!isLogin)}
                 className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
               >
                 {isLogin ? "Sign up" : "Log in"}
@@ -464,10 +492,10 @@ export default function AuthPage() {
 
             <div className="space-y-3">
               <select
-                value={role}
+                value={regRole}
                 onChange={(e) => {
-                  setRole(e.target.value);
-                  if (e.target.value !== "other") setCustomRole("");
+                  setRegRole(e.target.value);
+                  if (e.target.value !== "other") setRegCustomRole("");
                 }}
                 className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/20 text-white"
               >
@@ -497,11 +525,11 @@ export default function AuthPage() {
                 </option>
               </select>
 
-              {role === "other" && (
+              {regRole === "other" && (
                 <input
                   type="text"
-                  value={customRole}
-                  onChange={(e) => setCustomRole(e.target.value)}
+                  value={regCustomRole}
+                  onChange={(e) => setRegCustomRole(e.target.value)}
                   placeholder="Specify your role"
                   className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/20 text-white"
                 />
